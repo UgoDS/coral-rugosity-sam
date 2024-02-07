@@ -1,10 +1,13 @@
 import numpy as np
+import torch
 from segment_anything import SamPredictor, sam_model_registry
 
 # SAM Parameters
 SAM_CHECKPOINT = "sam_vit_h_4b8939.pth"
 MODEL_TYPE = "vit_h"
-DEVICE = "cuda"
+DEVICE = "cpu"
+if torch.cuda.is_available():
+    DEVICE = "cuda"
 
 
 def find_best_background_mask(predictor, image, list_points):
