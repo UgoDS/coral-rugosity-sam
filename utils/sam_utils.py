@@ -31,7 +31,7 @@ def get_sam_inputs(list_points):
     return input_point, input_label
 
 
-def load_predictor():
-    sam = sam_model_registry[MODEL_TYPE](checkpoint=SAM_CHECKPOINT)
+def load_predictor(model_type=MODEL_TYPE, sam_checkpoint=SAM_CHECKPOINT):
+    sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
     sam.to(device=DEVICE)
     return SamPredictor(sam)
