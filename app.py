@@ -88,9 +88,10 @@ with st.form("Rugosity calculation"):
     button_rugosity = st.form_submit_button("Launch rugosity calculations")
 
 if button_rugosity:
-    sts["mask"], sts["score"] = find_best_background_mask(
-        sts["predictor"], sts["img_cv"], list_points=sts["points"]
-    )
+    with st.spinner("Find Background"):
+        sts["mask"], sts["score"] = find_best_background_mask(
+            sts["predictor"], sts["img_cv"], list_points=sts["points"]
+        )
     st.pyplot(
         plot_masks(sts["img_cv"], sts["mask"], sts["score"], sts["points"]),
         use_container_width=False,
