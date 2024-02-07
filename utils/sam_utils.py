@@ -3,8 +3,10 @@ import torch
 from segment_anything import SamPredictor, sam_model_registry
 
 # SAM Parameters
-SAM_CHECKPOINT = "sam_vit_h_4b8939.pth"
-MODEL_TYPE = "vit_h"
+SAM_CHECKPOINT = (
+    "sam_vit_h_4b8939.pth"  # "sam_vit_h_4b8939.pth", "sam_vit_b_01ec64.pth"
+)
+MODEL_TYPE = "vit_h"  # vit_h, vit_b
 DEVICE = "cpu"
 if torch.cuda.is_available():
     DEVICE = "cuda"

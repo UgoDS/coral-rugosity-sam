@@ -1,4 +1,8 @@
 docs/
 __pycache__
 .DS_Store
-notebooks/background_removal.ipynb
+models/
+*.pth
+.vscode/
+*.JPG
+*.jpeg

@@ -59,7 +59,7 @@ if uploaded_file is not None:
         draw = ImageDraw.Draw(img)
         w, h = img.size
 
-    if sts["img_cv"] == []:
+    if len(sts["img_cv"]) > 0:
         sts["img_cv"] = load_image(file_path)
 
     # Draw an ellipse at each coordinate in points
@@ -88,10 +88,11 @@ with st.form("Rugosity calculation"):
     button_rugosity = st.form_submit_button("Launch rugosity calculations")
 
 if button_rugosity:
-    with st.spinner("Find Background"):
+    with st.spinner("Find Background (if using CPU, it can takes up to a minute...)"):
         sts["mask"], sts["score"] = find_best_background_mask(
             sts["predictor"], sts["img_cv"], list_points=sts["points"]
         )
+    st.write(sts["mask"])
     st.pyplot(
         plot_masks(sts["img_cv"], sts["mask"], sts["score"], sts["points"]),
         use_container_width=False,
