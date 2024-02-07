@@ -17,7 +17,6 @@ def upload_images():
     list_images = []
 
     for fn in uploaded.keys():
-        print(f'User uploaded file "{fn}" with length {len(uploaded[fn])} bytes')
         os.rename(f"/content/coral-rugosity-sam/{fn}", f"/content/coral-rugosity-sam/images/{fn}")
         list_images.append(f"/content/coral-rugosity-sam/images/{fn}")
 

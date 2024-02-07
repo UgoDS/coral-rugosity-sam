@@ -15,7 +15,7 @@ def get_ellipse_coords(point: tuple[int, int]) -> tuple[int, int, int, int]:
 
 
 def plot_rugosity_results(image, line_meter, line_sam, rugosity_pixels, mae):
-    fig_final = plt.figure(constrained_layout=True)
+    fig_final = plt.figure(dpi=1200)
     gs = gridspec.GridSpec(2, 1, figure=fig_final)
     gs.update(wspace=0.5)
     ax1 = plt.subplot(gs[0, 0])
@@ -55,6 +55,6 @@ def show_mask(mask, ax, random_color=False):
         color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
     else:
         color = np.array([206 / 255, 144 / 255, 255 / 255, 0.6])  # purple
-    h, w = mask.shape[-2:]
+    h, w = mask.shape[:2]
     mask_image = mask.reshape(h, w, 1) * color.reshape(1, 1, -1)
     ax.imshow(mask_image)

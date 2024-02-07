@@ -26,7 +26,6 @@ def compute_mean_absolute_error(line_meter, line_sam):
         for y_sam in np.where(line_sam[:, 0][:, 0] == x_meter)[0]:
             sum += abs(line_sam[:, 0][y_sam, 1] - y_meter)
     error = sum / n
-    print(f"Mean absolute error : {error:.2f}")
     return error
 
 
@@ -35,4 +34,4 @@ def compute_rugosity(mask, contour):
     line_left_right = get_line_from_left_to_right(mask, contour)
     nb_pixels_left_right = len(line_left_right)
     rugosity_pixels = round(contour_lenght / nb_pixels_left_right, 3)
-    return rugosity_pixels
+    return rugosity_pixels, contour_lenght

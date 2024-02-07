@@ -17,15 +17,19 @@ from utils.plot_utils import get_ellipse_coords, plot_masks, plot_rugosity_resul
 from utils.sam_utils import find_best_background_mask, load_predictor
 from utils.st_utils import init_session_state
 
+import os
+
+os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
+
 # Page Parameters
 dict_keys = {
     "points": [],
     "img_cv": [],
     "mask": [],
     "score": None,
-    "mae": None,
-    "rugosity_pixels": None,
 }
+# Display Parameters
+REDUCTION_IMAGE_FACTOR = 3
 
 
 def clear_cache():
@@ -35,6 +39,11 @@ def clear_cache():
 
 st.set_page_config(page_title="rugosity", layout="wide")
 sts = st.session_state
+if "dict_result" not in sts:
+    sts["dict_result"] = {}
+
+if "idx_image" not in sts:
+    sts["idx_image"] = 0
 
 
 st.title("Rugosity Estimator")
@@ -46,20 +55,25 @@ if "predictor" not in sts:
         sts["predictor"] = load_predictor()
 
 
-st.header("Load your image")
-uploaded_file = st.file_uploader("Upload an image", on_change=clear_cache)
-if uploaded_file is not None:
+st.header("Load your images")
+uploaded_files = st.file_uploader(
+    "Several images might be loaded simultaneously",
+    on_change=clear_cache,
+    accept_multiple_files=True,
+    type=[".JPG", ".jpeg", ".png"],
+)
+if uploaded_files != []:
+    uploaded_file = uploaded_files[sts["idx_image"]]
     uploaded_file_name = save_uploaded_file(uploaded_file)
-    st.success("Saved File:{} to images".format(uploaded_file_name))
-
-    image_path = f"{uploaded_file.name}_rugosity.png"
-    file_path = os.path.join("images", uploaded_file.name)
+    picture_name = f"{uploaded_file.name}"
+    image_path = f"{picture_name}_rugosity.png"
+    file_path = os.path.join("images", picture_name)
 
     with Image.open(file_path) as img:
         draw = ImageDraw.Draw(img)
         w, h = img.size
 
-    if len(sts["img_cv"]) > 0:
+    if len(sts["img_cv"]) == 0:
         sts["img_cv"] = load_image(file_path)
 
     # Draw an ellipse at each coordinate in points
@@ -71,54 +85,47 @@ if uploaded_file is not None:
     )
     with st.spinner("Update image"):
         value = streamlit_image_coordinates(
-            img, key="pil", height=int(h / 2), width=int(w / 2)
+            img,
+            key=f"pil_{picture_name}",
+            height=int(h / REDUCTION_IMAGE_FACTOR),
+            width=int(w / REDUCTION_IMAGE_FACTOR),
         )
 
     if value is not None:
-        point = value["x"] * 2, value["y"] * 2
+        point = value["x"] * REDUCTION_IMAGE_FACTOR, value["y"] * REDUCTION_IMAGE_FACTOR
 
         if point not in sts["points"]:
             sts["points"].append(point)
             st.rerun()
 
-    st.success(f"You marked {len(st.session_state['points'])} points")
+    if len(sts["points"]) > 0:
+        with st.spinner(
+            "Rugosity calculation (if using CPU, it can takes up to a minute...)"
+        ):
+            sts["mask"], sts["score"] = find_best_background_mask(
+                sts["predictor"], sts["img_cv"], list_points=sts["points"]
+            )
+        line_sam = find_contour_from_mask(sts["mask"])
+        line_meter = get_line_from_left_to_right(sts["mask"], line_sam)
 
-with st.form("Rugosity calculation"):
-    st.header("Rugosity calculation")
-    button_rugosity = st.form_submit_button("Launch rugosity calculations")
-
-if button_rugosity:
-    with st.spinner("Find Background (if using CPU, it can takes up to a minute...)"):
-        sts["mask"], sts["score"] = find_best_background_mask(
-            sts["predictor"], sts["img_cv"], list_points=sts["points"]
+        mae = compute_mean_absolute_error(line_meter, line_sam)
+        rugosity_pixels, contour_len = compute_rugosity(sts["mask"], line_sam)
+        final_image = plot_rugosity_results(
+            sts["img_cv"], line_meter, line_sam, rugosity_pixels, mae
         )
-    st.write(sts["mask"])
-    st.pyplot(
-        plot_masks(sts["img_cv"], sts["mask"], sts["score"], sts["points"]),
-        use_container_width=False,
-    )
-    line_sam = find_contour_from_mask(sts["mask"])
-    line_meter = get_line_from_left_to_right(sts["mask"], line_sam)
 
-    sts["mae"] = compute_mean_absolute_error(line_meter, line_sam)
-    sts["rugosity_pixels"] = compute_rugosity(sts["mask"], line_sam)
-    final_image = plot_rugosity_results(
-        sts["img_cv"], line_meter, line_sam, sts["rugosity_pixels"], sts["mae"]
-    )
-    st.pyplot(final_image, use_container_width=False)
-    plt.savefig(image_path)
-
-
-if st.session_state["mae"]:
-    with open(image_path, "rb") as file:
-        btn = st.download_button(
-            label="Download image",
-            data=file,
-            file_name=f"{uploaded_file.name}_rugosity.png",
-            mime="image/png",
-        )
-        btn_results = st.download_button(
-            "Download results",
-            data=f"{uploaded_file.name};MAE_{st.session_state['mae']};Rugosity_{st.session_state['rugosity_pixels']}",
-            file_name="test.txt",
-        )
+        st.pyplot(final_image, use_container_width=False)
+        plt.savefig(f"results/{image_path}")
+        sts["dict_result"][picture_name] = [
+            contour_len,
+            len(line_meter),
+            rugosity_pixels,
+            mae,
+            final_image,
+        ]
+        sts["idx_image"] += 1
+        if sts["idx_image"] < len(uploaded_files):
+            clear_cache()
+            st.rerun()
+        else:
+            st.write(sts["dict_result"])

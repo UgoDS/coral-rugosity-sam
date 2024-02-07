@@ -6,3 +6,4 @@ models/
 .vscode/
 *.JPG
 *.jpeg
+* .png
