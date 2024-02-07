@@ -1,0 +1,4 @@
+docs/
+__pycache__
+.DS_Store
+notebooks/background_removal.ipynb

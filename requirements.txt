@@ -1,0 +1,7 @@
+streamlit
+streamlit-image-coordinates
+opencv-python
+matplotlib
+torch
+torchvision
+'git+https://github.com/facebookresearch/segment-anything.git'
