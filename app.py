@@ -1,4 +1,15 @@
 import os
+import sys
+import subprocess
+
+if not os.path.exists("sam_vit_b_01ec64.pth"):
+    url = "https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth"
+    os.system(f"wget {url}")
+try:
+    from segment_anything import SamPredictor, sam_model_registry
+except:
+    url_sam = "git+https://github.com/facebookresearch/segment-anything.git"
+    subprocess.check_call([sys.executable, "-m", "pip", "install", url_sam])
 
 import matplotlib.pyplot as plt
 import streamlit as st
