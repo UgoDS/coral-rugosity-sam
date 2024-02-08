@@ -4,4 +4,5 @@ opencv-python-headless
 matplotlib
 torch
 torchvision
+google-colab
 git+https://github.com/facebookresearch/segment-anything.git
