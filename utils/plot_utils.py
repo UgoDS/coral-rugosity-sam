@@ -16,25 +16,25 @@ def get_ellipse_coords(point: tuple[int, int]) -> tuple[int, int, int, int]:
 
 def plot_rugosity_results(image, line_meter, line_sam, rugosity_pixels, mae):
     fig_final = plt.figure(dpi=1200)
-    gs = gridspec.GridSpec(2, 1, figure=fig_final)
+    gs = gridspec.GridSpec(1, 1, figure=fig_final)
     gs.update(wspace=0.5)
     ax1 = plt.subplot(gs[0, 0])
-    ax2 = plt.subplot(
-        gs[1, 0],
+    ax1.imshow(image)
+    ax1.plot(
+        [x[0] for x in line_sam[:, 0]],
+        [x[1] for x in line_sam[:, 0]],
+        color="yellow",
+        linewidth=1,
+        markersize=5,
     )
-
-    # just plot things on each individual axes
-    ax1.imshow(image, cmap="gray")
-    ax1.set_title("Original Image")
-
-    ax2.imshow(image)
-    ax2.plot(
-        [x[0] for x in line_sam[:, 0]], [x[1] for x in line_sam[:, 0]], color="yellow"
+    ax1.plot(
+        [line[0] for line in line_meter],
+        [line[1] for line in line_meter],
+        color="red",
+        linewidth=1,
+        markersize=5,
     )
-    ax2.plot(
-        [line[0] for line in line_meter], [line[1] for line in line_meter], color="red"
-    )
-    ax2.set_title(f"Pixel Method: {rugosity_pixels:.2f}, MAE Method: {mae:.2f}")
+    ax1.set_title("Contour vs Linear")
 
     return plt
 

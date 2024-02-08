@@ -1,8 +1,13 @@
 import numpy as np
+import pandas as pd
 
-from utils.mask_utils import (find_contour_lenght, find_lowest_left_pixel,
-                              find_lowest_right_pixel, get_max_contour_x,
-                              get_min_contour_x)
+from utils.mask_utils import (
+    find_contour_lenght,
+    find_lowest_left_pixel,
+    find_lowest_right_pixel,
+    get_max_contour_x,
+    get_min_contour_x,
+)
 
 
 def get_line_from_left_to_right(mask, contour):
@@ -35,3 +40,19 @@ def compute_rugosity(mask, contour):
     nb_pixels_left_right = len(line_left_right)
     rugosity_pixels = round(contour_lenght / nb_pixels_left_right, 3)
     return rugosity_pixels, contour_lenght
+
+
+def create_df_from_dict_result(dict_result):
+    df = pd.DataFrame(
+        columns=[
+            "PictureName",
+            "ContourLength(chain)",
+            "LinearLength(tape)",
+            "Rugosity(chain/tape)",
+            "MeanAbsoluteError",
+            "PictureNameResult",
+        ]
+    )
+    for idx, (k, v) in enumerate(dict_result.items()):
+        df.loc[idx, :] = [k] + v
+    return df

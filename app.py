@@ -6,18 +6,18 @@ from PIL import Image, ImageDraw
 from streamlit_image_coordinates import streamlit_image_coordinates
 
 from utils.image_utils import load_image
-from utils.io_utils import save_uploaded_file
+from utils.io_utils import create_zip_file, save_df_result, save_uploaded_file
 from utils.mask_utils import find_contour_from_mask
 from utils.metric_utils import (
     compute_mean_absolute_error,
     compute_rugosity,
+    create_df_from_dict_result,
     get_line_from_left_to_right,
 )
-from utils.plot_utils import get_ellipse_coords, plot_masks, plot_rugosity_results
+from utils.plot_utils import get_ellipse_coords, plot_rugosity_results
 from utils.sam_utils import find_best_background_mask, load_predictor
-from utils.st_utils import init_session_state
+from utils.st_utils import dl_button_zip, init_session_state
 
-import os
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
@@ -114,14 +114,14 @@ if uploaded_files != []:
             sts["img_cv"], line_meter, line_sam, rugosity_pixels, mae
         )
 
-        st.pyplot(final_image, use_container_width=False)
+        st.pyplot(final_image, use_container_width=True)
         plt.savefig(f"results/{image_path}")
         sts["dict_result"][picture_name] = [
             contour_len,
             len(line_meter),
             rugosity_pixels,
             mae,
-            final_image,
+            image_path,
         ]
         sts["idx_image"] += 1
         if sts["idx_image"] < len(uploaded_files):
@@ -129,3 +129,8 @@ if uploaded_files != []:
             st.rerun()
         else:
             st.write(sts["dict_result"])
+            df = create_df_from_dict_result(sts["dict_result"])
+            save_df_result(df, "results/results.csv")
+            create_zip_file("results", "results")
+            dl_button_zip("results.zip")
+            # clean_repo("results")
