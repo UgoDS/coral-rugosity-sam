@@ -1,7 +1,7 @@
-# Rugosity estimator
-Welcome to the Rugosity tool.
+# Tool
+Welcome to the tool.
 
-This tool is designed to help you find the rugosity out of coral landscapes images.
+This tool is designed to help you extract background and skyline.
 
 It relies on 2 steps:
 - Background identification using [Segment Anything Model](https://github.com/facebookresearch/segment-anything)
@@ -22,10 +22,10 @@ First, you'll need to enable GPUs for the notebook:
 Load the images you need to analyse.
 
 ### 4. Point several background points
-To identify the background, the user needs to give several examples. **Use your mouse to few (3 to 10) points**.
+To identify the background, the user needs to give several examples. **Use your mouse 1 point is usually sufficent**.
 
-### 5. Pick a rugosity method
-There are several ways to compute rugosity, pick one among the several available.
+### 5. Pick a method
+There are several ways to compute, pick one among the several available.
 
 ### 6. Save the results on your laptop
 
