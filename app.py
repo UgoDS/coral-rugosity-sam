@@ -129,9 +129,13 @@ if uploaded_files != []:
             clear_cache()
             st.rerun()
         else:
-            st.write(sts["dict_result"])
             df = create_df_from_dict_result(sts["dict_result"])
+            st.write(df)
             save_df_result(df, "results/results.csv")
             create_zip_file("results", "results")
             dl_button_zip("results.zip")
+
+            clear_cache()
+            sts["idx_image"] = 0
+            uploaded_files = []
             # clean_repo("results")
