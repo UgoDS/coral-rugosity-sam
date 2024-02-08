@@ -28,8 +28,8 @@ def compute_mean_absolute_error(line_meter, line_sam):
     sum = 0
     for x_meter in range(n):
         x_meter, y_meter = line_meter[x_meter]
-        for y_sam in np.where(line_sam[:, 0][:, 0] == x_meter)[0]:
-            sum += abs(line_sam[:, 0][y_sam, 1] - y_meter)
+        y_sam = np.where(line_sam[:, 0][:, 0] == x_meter)[0][0] # THe contounr has 2 rows
+        sum += abs(line_sam[:, 0][y_sam, 1] - y_meter)
     error = sum / n
     return error
 

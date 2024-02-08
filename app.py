@@ -63,6 +63,7 @@ uploaded_files = st.file_uploader(
     type=[".JPG", ".jpeg", ".png"],
 )
 if uploaded_files != []:
+    st.header("Annotate your image")
     uploaded_file = uploaded_files[sts["idx_image"]]
     uploaded_file_name = save_uploaded_file(uploaded_file)
     picture_name = f"{uploaded_file.name}"
@@ -80,7 +81,7 @@ if uploaded_files != []:
     for point in sts["points"]:
         coords = get_ellipse_coords(point)
         draw.ellipse(coords, fill="red")
-    st.success(
+    st.caption(
         "Click on the image to select background. Try with one point and add other if necessarly."
     )
     with st.spinner("Update image"):

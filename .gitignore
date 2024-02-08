@@ -7,3 +7,4 @@ models/
 *.JPG
 *.jpeg
 * .png
+*.csv
