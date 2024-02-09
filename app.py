@@ -123,6 +123,7 @@ if uploaded_files != []:
             rugosity_pixels,
             mae,
             image_path,
+            sts["points"],
         ]
         sts["idx_image"] += 1
         if sts["idx_image"] < len(uploaded_files):
@@ -138,4 +139,5 @@ if uploaded_files != []:
             clear_cache()
             sts["idx_image"] = 0
             uploaded_files = []
+            st.rerun()
             # clean_repo("results")

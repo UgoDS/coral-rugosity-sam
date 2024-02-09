@@ -51,6 +51,7 @@ def create_df_from_dict_result(dict_result):
             "Rugosity(chain/tape)",
             "MeanAbsoluteError",
             "PictureNameResult",
+            "PointsCoordinates"
         ]
     )
     for idx, (k, v) in enumerate(dict_result.items()):
