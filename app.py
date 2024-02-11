@@ -21,20 +21,8 @@ from utils.st_utils import dl_button_zip, init_session_state
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
-# Page Parameters
-dict_keys = {
-    "points": [],
-    "img_cv": [],
-    "mask": [],
-    "score": None,
-}
 # Display Parameters
 REDUCTION_IMAGE_FACTOR = 3
-
-
-def clear_cache():
-    for k, v in dict_keys.items():
-        del sts[k]
 
 
 st.set_page_config(page_title="rugosity", layout="wide")
@@ -42,102 +30,136 @@ sts = st.session_state
 if "dict_result" not in sts:
     sts["dict_result"] = {}
 
+if "dict_points" not in sts:
+    sts["dict_points"] = {}
+
 if "idx_image" not in sts:
     sts["idx_image"] = 0
+
+if "annotation_is_done" not in sts:
+    sts["annotation_is_done"] = False
+
+if "calculation_is_done" not in sts:
+    sts["calculation_is_done"] = False
 
 
 st.title("Rugosity Estimator")
 
 # Session State
-init_session_state(dict_keys)
 if "predictor" not in sts:
     with st.spinner("Load predictor"):
         sts["predictor"] = load_predictor()
 
 
-st.header("Load your images")
+st.header("1. Load your images")
 uploaded_files = st.file_uploader(
     "Several images might be loaded simultaneously",
-    on_change=clear_cache,
     accept_multiple_files=True,
     type=[".JPG", ".jpeg", ".png"],
 )
-if uploaded_files != []:
-    st.header("Annotate your image")
-    uploaded_file = uploaded_files[sts["idx_image"]]
-    uploaded_file_name = save_uploaded_file(uploaded_file)
-    picture_name = f"{uploaded_file.name}"
-    image_path = f"{picture_name}_rugosity.png"
-    file_path = os.path.join("images", picture_name)
+st.header("2. Annotate your image")
+if uploaded_files == []:
+    st.warning("You need to load images")
+else:
+    if uploaded_files != []:
+        uploaded_file = uploaded_files[sts["idx_image"]]
+        uploaded_file_name = save_uploaded_file(uploaded_file)
+        picture_name = f"{uploaded_file.name}"
+        image_path = f"{picture_name}_rugosity.png"
+        file_path = os.path.join("images", picture_name)
+        if picture_name not in sts["dict_points"].keys():
+            sts["dict_points"][picture_name] = []
 
-    with Image.open(file_path) as img:
-        draw = ImageDraw.Draw(img)
-        w, h = img.size
+        with Image.open(file_path) as img:
+            draw = ImageDraw.Draw(img)
+            w, h = img.size
 
-    if len(sts["img_cv"]) == 0:
-        sts["img_cv"] = load_image(file_path)
+        # Draw an ellipse at each coordinate in points
+        for point in sts["dict_points"][picture_name]:
+            coords = get_ellipse_coords(point)
+            draw.ellipse(coords, fill="red")
+        st.caption(
+            f"""{picture_name} ({sts["idx_image"]}/{len(uploaded_files)})
 
-    # Draw an ellipse at each coordinate in points
-    for point in sts["points"]:
-        coords = get_ellipse_coords(point)
-        draw.ellipse(coords, fill="red")
-    st.caption(
-        "Click on the image to select background. Try with one point and add other if necessarly."
-    )
-    with st.spinner("Update image"):
-        value = streamlit_image_coordinates(
-            img,
-            key=f"pil_{picture_name}",
-            height=int(h / REDUCTION_IMAGE_FACTOR),
-            width=int(w / REDUCTION_IMAGE_FACTOR),
+            Click on the image to select background. Try with one point and add other if necessarly."""
         )
-
-    if value is not None:
-        point = value["x"] * REDUCTION_IMAGE_FACTOR, value["y"] * REDUCTION_IMAGE_FACTOR
-
-        if point not in sts["points"]:
-            sts["points"].append(point)
-            st.rerun()
-
-    if len(sts["points"]) > 0:
-        with st.spinner(
-            "Rugosity calculation (if using CPU, it can takes up to a minute...)"
-        ):
-            sts["mask"], sts["score"] = find_best_background_mask(
-                sts["predictor"], sts["img_cv"], list_points=sts["points"]
+        with st.spinner("Update image"):
+            value = streamlit_image_coordinates(
+                img,
+                key=f"pil_{picture_name}",
+                height=int(h / REDUCTION_IMAGE_FACTOR),
+                width=int(w / REDUCTION_IMAGE_FACTOR),
             )
-        line_sam = find_contour_from_mask(sts["mask"])
-        line_meter = get_line_from_left_to_right(sts["mask"], line_sam)
 
-        mae = compute_mean_absolute_error(line_meter, line_sam)
-        rugosity_pixels, contour_len = compute_rugosity(sts["mask"], line_sam)
-        final_image = plot_rugosity_results(
-            sts["img_cv"], line_meter, line_sam, rugosity_pixels, mae
+        if value is not None:
+            point = (
+                value["x"] * REDUCTION_IMAGE_FACTOR,
+                value["y"] * REDUCTION_IMAGE_FACTOR,
+            )
+
+            if point not in sts["dict_points"][picture_name]:
+                sts["dict_points"][picture_name].append(point)
+                st.rerun()
+
+        button_validate = st.button("Validate Annotation")
+        if button_validate:
+            sts["idx_image"] += 1
+            if sts["idx_image"] == len(uploaded_files):
+                sts["annotation_is_done"] = True
+                sts["idx_image"] = 0
+            st.rerun()
+
+
+st.header("3. Computation")
+if sts["annotation_is_done"]:
+    if st.button("Launch Rugosity Calculation"):
+        st.caption(
+            f"""It can take up to {len(uploaded_files)} minutes to compute if using cpu. 
+                Meanwhile, check what is [Segment Anything Model](https://github.com/facebookresearch/segment-anything)"""
         )
+        for idx, file_ in enumerate(uploaded_files):
+            picture_name = file_.name
+            with st.spinner(
+                f"""{picture_name} ({idx}/{len(uploaded_files)})"""
+            ):
+                img_cv = load_image(file_path)
+                points = sts["dict_points"][picture_name]
+                file_path = os.path.join("images", picture_name)
+                mask, score = find_best_background_mask(
+                    sts["predictor"], img_cv, list_points=points
+                )
+                line_sam = find_contour_from_mask(mask)
+                line_meter = get_line_from_left_to_right(mask, line_sam)
 
-        st.pyplot(final_image, use_container_width=True)
-        plt.savefig(f"results/{image_path}")
-        sts["dict_result"][picture_name] = [
-            contour_len,
-            len(line_meter),
-            rugosity_pixels,
-            mae,
-            image_path,
-            sts["points"],
-        ]
-        sts["idx_image"] += 1
-        if sts["idx_image"] < len(uploaded_files):
-            clear_cache()
-            st.rerun()
-        else:
-            df = create_df_from_dict_result(sts["dict_result"])
-            st.write(df)
-            save_df_result(df, "results/results.csv")
-            create_zip_file("results", "results")
-            dl_button_zip("results.zip")
+                mae = compute_mean_absolute_error(line_meter, line_sam)
+                rugosity_pixels, contour_len = compute_rugosity(mask, line_sam)
+                final_image = plot_rugosity_results(
+                    img_cv, line_meter, line_sam, picture_name
+                )
 
-            clear_cache()
-            sts["idx_image"] = 0
-            uploaded_files = []
-            st.rerun()
-            # clean_repo("results")
+                st.pyplot(final_image, use_container_width=True)
+                plt.savefig(f"results/{picture_name}")
+                sts["dict_result"][picture_name] = [
+                    contour_len,
+                    len(line_meter),
+                    rugosity_pixels,
+                    mae,
+                    points,
+                ]
+                df = create_df_from_dict_result(sts["dict_result"])
+                st.write(df)
+        sts["calculation_is_done"] = True
+else:
+    st.warning("You need to annotate images before running computation")
+st.header("4. Save results")
+if sts["calculation_is_done"]:
+    df = create_df_from_dict_result(sts["dict_result"])
+    save_df_result(df, "results/results.csv")
+    create_zip_file("results", "results")
+    dl_button_zip("results.zip")
+
+    sts["idx_image"] = 0
+    uploaded_files = []
+    # clean_repo("results")
+else:
+    st.warning("You need to run computation before saving results")

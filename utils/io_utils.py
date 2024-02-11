@@ -39,4 +39,4 @@ def clean_repo(path):
 
 
 def save_df_result(df, path):
-    df.to_csv(path, sep=";", index=False)
+    df.to_csv(path, sep=";", index=True)

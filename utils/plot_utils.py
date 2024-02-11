@@ -14,7 +14,7 @@ def get_ellipse_coords(point: tuple[int, int]) -> tuple[int, int, int, int]:
     )
 
 
-def plot_rugosity_results(image, line_meter, line_sam, rugosity_pixels, mae):
+def plot_rugosity_results(image, line_meter, line_sam, image_name):
     fig_final = plt.figure(dpi=1200)
     gs = gridspec.GridSpec(1, 1, figure=fig_final)
     gs.update(wspace=0.5)
@@ -34,7 +34,7 @@ def plot_rugosity_results(image, line_meter, line_sam, rugosity_pixels, mae):
         linewidth=1,
         markersize=5,
     )
-    ax1.set_title("Contour vs Linear")
+    ax1.set_title(f"{image_name} - Contour vs Linear")
 
     return plt
 

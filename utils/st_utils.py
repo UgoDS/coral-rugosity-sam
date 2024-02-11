@@ -16,4 +16,5 @@ def dl_button_zip(path_zip):
             data=fp,
             file_name="results.zip",
             mime="application/zip",
+            on_click=st.rerun,
         )
