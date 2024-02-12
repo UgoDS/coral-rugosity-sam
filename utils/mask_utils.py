@@ -21,13 +21,9 @@ def find_lowest_right_pixel(mask, contour):
 
 
 def find_edges(mask):
-    """
-    Mathematical method to find the edge using np.gradient"""
-    gx, gy = np.gradient(mask * 1)
-    edges = gy * gy + gx * gx
+    edges = cv2.Canny(np.asarray(mask*1, dtype=np.uint8), 0, 0)
     edges[edges != 0.0] = 1
-    edges = np.asarray(edges, dtype=np.uint8)
-    return edges
+    return np.asarray(edges, dtype=np.uint8)
 
 
 def find_contours(edges):
@@ -50,8 +46,32 @@ def find_contour_from_mask(mask):
     edges = find_edges(mask)
     contours = find_contours(edges)
     longest_contour_index = find_longest_contour_index(contours)
-    return contours[longest_contour_index]
+    longest_contour = contours[longest_contour_index]
+    return longest_contour
 
 
 def find_contour_lenght(contour):
-    return cv2.arcLength(contour, True)
+    #return cv2.arcLength(contour, True)
+    return len(contour)
+
+
+def get_matrix_from_contour(contour, img):
+    contour_image = np.zeros(img.shape[:2])
+    verts = contour.reshape(contour.shape[0], contour.shape[2])
+    row_indices = verts[:, 1]
+    col_indices = verts[:, 0]
+    contour_image[row_indices, col_indices] = 1
+    return contour_image
+
+
+def get_thinner_contour(original_matrix):
+    matrix = np.zeros(original_matrix.shape)
+    indices = np.argmax(original_matrix == 1, axis=0)
+    matrix[indices, np.arange(original_matrix.shape[1])] = 1
+    return matrix
+
+
+def from_image_to_contour(contour_image):
+    coordinates = np.argwhere(contour_image == 1)
+    return np.flip(coordinates).reshape((len(coordinates), 1, 2))
+
