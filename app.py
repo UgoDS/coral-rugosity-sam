@@ -64,6 +64,7 @@ else:
     if uploaded_files != []:
         uploaded_file = uploaded_files[sts["idx_image"]]
         picture_name = f"{uploaded_file.name}"
+        save_uploaded_file(uploaded_file)
         image_path = f"{picture_name}_rugosity.png"
         file_path = os.path.join("images", picture_name)
         if picture_name not in sts["dict_points"].keys():
