@@ -2,6 +2,7 @@ import os
 
 import matplotlib.pyplot as plt
 import streamlit as st
+import numpy as np
 from PIL import Image, ImageDraw
 from streamlit_image_coordinates import streamlit_image_coordinates
 
@@ -9,14 +10,13 @@ from utils.image_utils import load_image
 from utils.io_utils import create_zip_file, save_df_result, save_uploaded_file
 from utils.mask_utils import find_contour_from_mask
 from utils.metric_utils import (
-    compute_mean_absolute_error,
-    compute_rugosity,
+    compute_similarities,
     create_df_from_dict_result,
     get_line_from_left_to_right,
 )
 from utils.plot_utils import get_ellipse_coords, plot_rugosity_results
 from utils.sam_utils import find_best_background_mask, load_predictor
-from utils.st_utils import dl_button_zip, init_session_state
+from utils.st_utils import dl_button_zip
 
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
@@ -57,13 +57,12 @@ uploaded_files = st.file_uploader(
     accept_multiple_files=True,
     type=[".JPG", ".jpeg", ".png"],
 )
-st.header("2. Annotate your image")
+st.header("2. Annotate your images")
 if uploaded_files == []:
     st.warning("You need to load images")
 else:
     if uploaded_files != []:
         uploaded_file = uploaded_files[sts["idx_image"]]
-        uploaded_file_name = save_uploaded_file(uploaded_file)
         picture_name = f"{uploaded_file.name}"
         image_path = f"{picture_name}_rugosity.png"
         file_path = os.path.join("images", picture_name)
@@ -119,20 +118,21 @@ if sts["annotation_is_done"]:
         )
         for idx, file_ in enumerate(uploaded_files):
             picture_name = file_.name
-            with st.spinner(
-                f"""{picture_name} ({idx}/{len(uploaded_files)})"""
-            ):
+            with st.spinner(f"""{picture_name} ({idx}/{len(uploaded_files)})"""):
+                file_path = os.path.join("images", picture_name)
                 img_cv = load_image(file_path)
                 points = sts["dict_points"][picture_name]
-                file_path = os.path.join("images", picture_name)
                 mask, score = find_best_background_mask(
                     sts["predictor"], img_cv, list_points=points
                 )
                 line_sam = find_contour_from_mask(mask)
                 line_meter = get_line_from_left_to_right(mask, line_sam)
+                line_sam_simple = np.array([(x[0], x[1]) for x in line_sam[:, 0]])
+                line_meter_simple = np.array(line_meter)
 
-                mae = compute_mean_absolute_error(line_meter, line_sam)
-                rugosity_pixels, contour_len = compute_rugosity(mask, line_sam)
+                similarities = compute_similarities(
+                    line_meter_simple, line_sam_simple, line_meter
+                )
                 final_image = plot_rugosity_results(
                     img_cv, line_meter, line_sam, picture_name
                 )
@@ -140,10 +140,15 @@ if sts["annotation_is_done"]:
                 st.pyplot(final_image, use_container_width=True)
                 plt.savefig(f"results/{picture_name}")
                 sts["dict_result"][picture_name] = [
-                    contour_len,
+                    similarities.contour_lenght,
                     len(line_meter),
-                    rugosity_pixels,
-                    mae,
+                    similarities.rugosity_pixels,
+                    similarities.mae,
+                    similarities.pcm,
+                    similarities.frechet_dist,
+                    similarities.area_between_two_curves,
+                    similarities.curve_length_measure_arc,
+                    similarities.dtw,
                     points,
                 ]
                 df = create_df_from_dict_result(sts["dict_result"])
