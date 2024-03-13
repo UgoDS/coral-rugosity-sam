@@ -3,11 +3,10 @@ import os
 import matplotlib.pyplot as plt
 import streamlit as st
 import numpy as np
-from PIL import Image, ImageDraw
-from streamlit_image_coordinates import streamlit_image_coordinates
+from st_image_coordinates import streamlit_image_coordinates
 
 from utils.image_utils import load_image
-from utils.io_utils import create_zip_file, save_df_result, save_uploaded_file
+from utils.io_utils import create_zip_file, load_image_pil, save_df_result, save_uploaded_file
 from utils.mask_utils import find_contour_from_mask
 from utils.metric_utils import (
     compute_similarities,
@@ -30,8 +29,11 @@ sts = st.session_state
 if "dict_result" not in sts:
     sts["dict_result"] = {}
 
-if "dict_points" not in sts:
-    sts["dict_points"] = {}
+if "dict_points_background" not in sts:
+    sts["dict_points_background"] = {}
+
+if "dict_points_fish" not in sts:
+    sts["dict_points_fish"] = {}
 
 if "idx_image" not in sts:
     sts["idx_image"] = 0
@@ -41,6 +43,13 @@ if "annotation_is_done" not in sts:
 
 if "calculation_is_done" not in sts:
     sts["calculation_is_done"] = False
+
+if "object_type" not in st.session_state:
+    st.session_state["object_type"] = "background"
+
+
+def callback_object_type(object_type):
+    st.session_state.object_type = object_type
 
 
 st.title("Rugosity Estimator")
@@ -57,27 +66,39 @@ uploaded_files = st.file_uploader(
     accept_multiple_files=True,
     type=[".JPG", ".jpeg", ".png"],
 )
+
 st.header("2. Annotate your images")
 if uploaded_files == []:
     st.warning("You need to load images")
 else:
     if uploaded_files != []:
+        cols = st.columns(2)
+        button_background = cols[0].button(
+            "Background", on_click=callback_object_type, args=["background"]
+        )
+        button_fish = cols[1].button(
+            "Fish", on_click=callback_object_type, args=["fish"]
+        )
+
         uploaded_file = uploaded_files[sts["idx_image"]]
         picture_name = f"{uploaded_file.name}"
         save_uploaded_file(uploaded_file)
         image_path = f"{picture_name}_rugosity.png"
         file_path = os.path.join("images", picture_name)
-        if picture_name not in sts["dict_points"].keys():
-            sts["dict_points"][picture_name] = []
+        if picture_name not in sts["dict_points_background"].keys():
+            sts["dict_points_background"][picture_name] = []
+        if picture_name not in sts["dict_points_fish"].keys():
+            sts["dict_points_fish"][picture_name] = []
 
-        with Image.open(file_path) as img:
-            draw = ImageDraw.Draw(img)
-            w, h = img.size
+        img, w, h, draw = load_image_pil(file_path)
 
         # Draw an ellipse at each coordinate in points
-        for point in sts["dict_points"][picture_name]:
+        for point in sts["dict_points_background"][picture_name]:
             coords = get_ellipse_coords(point)
             draw.ellipse(coords, fill="red")
+        for point in sts["dict_points_fish"][picture_name]:
+            coords = get_ellipse_coords(point)
+            draw.ellipse(coords, fill="blue")
         st.caption(
             f"""{picture_name} ({sts["idx_image"]}/{len(uploaded_files)})
 
@@ -97,8 +118,14 @@ else:
                 value["y"] * REDUCTION_IMAGE_FACTOR,
             )
 
-            if point not in sts["dict_points"][picture_name]:
-                sts["dict_points"][picture_name].append(point)
+            if (
+                point
+                not in sts["dict_points_background"][picture_name]
+                + sts["dict_points_fish"][picture_name]
+            ):
+                sts[f"dict_points_{st.session_state.object_type}"][picture_name].append(
+                    point
+                )
                 st.rerun()
 
         button_validate = st.button("Validate Annotation")
@@ -122,9 +149,13 @@ if sts["annotation_is_done"]:
             with st.spinner(f"""{picture_name} ({idx}/{len(uploaded_files)})"""):
                 file_path = os.path.join("images", picture_name)
                 img_cv = load_image(file_path)
-                points = sts["dict_points"][picture_name]
+                points_background = sts["dict_points_background"][picture_name]
+                points_fish = sts["dict_points_fish"][picture_name]
                 mask, score = find_best_background_mask(
-                    sts["predictor"], img_cv, list_points=points
+                    sts["predictor"],
+                    img_cv,
+                    list_points_background=points_background,
+                    list_points_fish=points_fish,
                 )
                 line_sam = find_contour_from_mask(mask)
                 line_meter = get_line_from_left_to_right(mask, line_sam)
@@ -150,7 +181,7 @@ if sts["annotation_is_done"]:
                     similarities.area_between_two_curves,
                     similarities.curve_length_measure_arc,
                     similarities.dtw,
-                    points,
+                    points_background,
                 ]
                 df = create_df_from_dict_result(sts["dict_result"])
                 st.write(df)

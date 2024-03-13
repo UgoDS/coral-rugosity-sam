@@ -1,7 +1,8 @@
 import os
 import shutil
 import glob
-from google.colab import output, files
+from google.colab import files
+from PIL import Image, ImageDraw
 
 
 def save_uploaded_file(uploaded_file):
@@ -40,3 +41,10 @@ def clean_repo(path):
 
 def save_df_result(df, path):
     df.to_csv(path, sep=";", index=True)
+
+
+def load_image_pil(file_path):
+    with Image.open(file_path) as img:
+        draw = ImageDraw.Draw(img)
+        w, h = img.size
+    return img, w, h, draw

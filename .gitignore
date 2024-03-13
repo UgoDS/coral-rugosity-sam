@@ -9,3 +9,5 @@ models/
 *.png
 *.csv
 *.zip
+*.pickle
+*.pk

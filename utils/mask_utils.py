@@ -21,7 +21,7 @@ def find_lowest_right_pixel(mask, contour):
 
 
 def find_edges(mask):
-    edges = cv2.Canny(np.asarray(mask*1, dtype=np.uint8), 0, 0)
+    edges = cv2.Canny(np.asarray(mask * 1, dtype=np.uint8), 0, 0)
     edges[edges != 0.0] = 1
     return np.asarray(edges, dtype=np.uint8)
 
@@ -51,7 +51,7 @@ def find_contour_from_mask(mask):
 
 
 def find_contour_lenght(contour):
-    #return cv2.arcLength(contour, True)
+    # return cv2.arcLength(contour, True)
     return len(contour)
 
 
@@ -74,4 +74,3 @@ def get_thinner_contour(original_matrix):
 def from_image_to_contour(contour_image):
     coordinates = np.argwhere(contour_image == 1)
     return np.flip(coordinates).reshape((len(coordinates), 1, 2))
-

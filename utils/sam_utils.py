@@ -12,10 +12,12 @@ if torch.cuda.is_available():
     SAM_CHECKPOINT = "sam_vit_h_4b8939.pth"
 
 
-def find_best_background_mask(predictor, image, list_points):
+def find_best_background_mask(
+    predictor, image, list_points_background, list_points_fish
+):
     predictor.set_image(image)
 
-    input_point, input_label = get_sam_inputs(list_points)
+    input_point, input_label = get_sam_inputs(list_points_background, list_points_fish)
 
     masks, scores, logits = predictor.predict(
         point_coords=input_point,
@@ -25,9 +27,12 @@ def find_best_background_mask(predictor, image, list_points):
     return masks[0], scores[0]
 
 
-def get_sam_inputs(list_points):
-    input_point = np.array(list_points)
-    input_label = np.array([1 for x in range(len(list_points))])
+def get_sam_inputs(list_points_background, list_points_fish):
+    input_point = np.array(list_points_background + list_points_fish)
+    input_label = np.array(
+        [1 for x in range(len(list_points_background))]
+        + [2 + x for x in range(len(list_points_fish))] # Each fish is different
+    )
     return input_point, input_label
 
 
