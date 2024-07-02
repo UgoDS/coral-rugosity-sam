@@ -24,6 +24,7 @@ def plot_rugosity_results(image, line_meter, line_sam, image_name):
     gs = gridspec.GridSpec(1, 1, figure=fig_final)
     gs.update(wspace=0.5)
     ax1 = plt.subplot(gs[0, 0])
+    ax1.grid(False)
     ax1.imshow(image)
     ax1.plot(
         [x[0] for x in line_sam[:, 0]],
